@@ -1,5 +1,4 @@
 from commandbased import CommandBasedRobot
-from wpilib.command import Command
 import wpilib
 
 from subsystems.drive_train import DriveTrain
