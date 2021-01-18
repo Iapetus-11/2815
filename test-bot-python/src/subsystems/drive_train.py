@@ -6,8 +6,10 @@ import constants
 
 
 class DriveTrain(wpilib.command.Subsystem):
-    def __init__(self):
+    def __init__(self, robot):
         super().__init__(self.__class__.__name__)
+
+        self.robot = robot
 
         self._talons = tuple(ctre.TalonSRX(i) for i in constants.drive_talon_ports)
 
@@ -20,4 +22,4 @@ class DriveTrain(wpilib.command.Subsystem):
         self._drive.arcadeDrive(speed, rotation)
 
     def initDefaultCommand(self):
-        self.setDefaultCommand(Drive())
+        self.setDefaultCommand(Drive(self.robot))
