@@ -11,15 +11,15 @@ class DriveTrain(wpilib.command.Subsystem):
 
         self.robot = robot
 
-        self._talons = tuple(ctre.TalonSRX(i) for i in constants.drive_talon_ports)
+        self.talons = tuple(ctre.TalonSRX(i) for i in constants.drive_talon_ports)
+        
+        self.left_side = wpilib.SpeedControllerGroup(*self.talons[0:2])
+        self.right_side = wpilib.SpeedControllerGroup(*self.talons[2:4])
 
-        self._left_side = wpilib.SpeedControllerGroup(*self._talons[0:2])
-        self._right_side = wpilib.SpeedControllerGroup(*self._talons[2:4])
-
-        self._drive = wpilib.drive.DifferentialDrive(self._left_side, self._right_side)
+        self.drivetrain = wpilib.drive.DifferentialDrive(self.left_side, self.right_side)
 
     def drive(speed: float, rotation: float):
-        self._drive.arcadeDrive(speed, rotation)
+        self.drivetrain.arcadeDrive(speed, rotation)
 
     def initDefaultCommand(self):
         self.setDefaultCommand(Drive(self.robot))
