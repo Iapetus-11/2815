@@ -1,2 +1,3 @@
 
-drive_talons = (0, 1, 2, 3,)
+drive_talons_ports = (0, 1, 2, 3,)
+xbox_controller_port = 0
