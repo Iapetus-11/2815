@@ -7,10 +7,14 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.commands.Collect;
 import frc.robot.commands.Drive;
-import frc.robot.subsystems.Aligner;
+import frc.robot.commands.autoCommandGroups.TestAuto;
+// import frc.robot.subsystems.Aligner;
+import frc.robot.subsystems.Collector;
 import frc.robot.subsystems.DriveTrain;
 
 /**
@@ -20,15 +24,21 @@ import frc.robot.subsystems.DriveTrain;
  * (including subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  private final DriveTrain driveTrain = new DriveTrain();
-  private final Aligner aligner = new Aligner();
+  private final ADXRS450_Gyro gyro = new ADXRS450_Gyro();
+
+  private final DriveTrain choochoo = new DriveTrain(gyro);
+  private final Collector collector = new Collector();
+  // private final Aligner aligner = new Aligner();
 
   XboxController xbox = new XboxController(0);
 
-  private final Drive drive = new Drive(driveTrain, () -> xbox.getRawAxis(1), () -> xbox.getRawAxis(4), () -> xbox.getAButton());
+  private final Drive drive = new Drive(choochoo, () -> xbox.getRawAxis(1), () -> xbox.getRawAxis(4), () -> xbox.getAButton(), () -> xbox.getYButton());
+  private final Collect collect = new Collect(collector, () -> xbox.getXButton());
+  private final TestAuto autoTest = new TestAuto(choochoo);
   
   public RobotContainer() {
-    driveTrain.setDefaultCommand(drive);
+    choochoo.setDefaultCommand(drive);
+    collector.setDefaultCommand(collect);
 
     configureButtonBindings();
   }
@@ -38,6 +48,6 @@ public class RobotContainer {
 
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
-    return null;
+    return autoTest;
   }
 }

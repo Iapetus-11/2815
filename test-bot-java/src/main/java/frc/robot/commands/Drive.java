@@ -10,6 +10,9 @@ package frc.robot.commands;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.robot.subsystems.DriveTrain;
 
@@ -18,13 +21,20 @@ public class Drive extends CommandBase {
 
   private final DoubleSupplier forwards;
   private final DoubleSupplier turn;
-  private final BooleanSupplier forwButt;
+  private final BooleanSupplier alignButt;
+  private final BooleanSupplier resetButt;
+  
+  private final NetworkTable limeLightTable = NetworkTableInstance.getDefault().getTable("limelight");
+  private final NetworkTableEntry tx = limeLightTable.getEntry("tx");
+  private final double kp = 0.02;
 
-  public Drive(DriveTrain d, DoubleSupplier f, DoubleSupplier t, BooleanSupplier f2) {
+  public Drive(DriveTrain d, DoubleSupplier f, DoubleSupplier t, BooleanSupplier a, BooleanSupplier r) {
     choochoo = d;
     forwards = f;
     turn = t;
-    forwButt = f2;
+    alignButt = a;
+    resetButt = r;
+
     addRequirements(choochoo);
   }
 
@@ -36,7 +46,31 @@ public class Drive extends CommandBase {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    choochoo.driveArcade((forwButt.getAsBoolean() ? -.45 : forwards.getAsDouble()), turn.getAsDouble());
+    if (resetButt.getAsBoolean()) {
+      System.out.println("encoder reset");
+      choochoo.resetEncoders();
+    }
+    
+    if (alignButt.getAsBoolean()) {
+      double headingError = tx.getDouble(0.0);
+      double steeringAdjust = kp * headingError;
+
+      System.out.println(steeringAdjust);
+      choochoo.drive(forwards.getAsDouble(), steeringAdjust);
+    } else {
+      double turnValue = turn.getAsDouble();
+      double forwardsValue = -forwards.getAsDouble();
+
+      if (Math.abs(turnValue) < .04) {
+        turnValue = 0.0;
+      }
+
+      if (Math.abs(forwardsValue) < .03) {
+        forwardsValue = 0.0;
+      }
+
+      choochoo.drive(forwardsValue, turnValue);
+    }
   }
 
   // Called once the command ends or is interrupted.

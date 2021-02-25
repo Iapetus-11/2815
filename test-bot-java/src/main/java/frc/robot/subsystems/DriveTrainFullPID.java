@@ -18,18 +18,21 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants;
 
-public class DriveTrain extends SubsystemBase {
+public class DriveTrainFullPID extends SubsystemBase {
   private final WPI_TalonSRX[] talons = new WPI_TalonSRX[4]; // 4 talons for doing the driving
   private final Faults leftFault = new Faults();
   private final Faults rightFault = new Faults();
 
   private final ADXRS450_Gyro gyro;
+  private double P = .1; // .5
+  private double I = .01; // .1
+  private double D = 0;
+  private double i = 0;
+  // private double lastError = 0;
 
   private final DifferentialDrive tank;
-  
-  private double I = 30; // 30 on test bot
 
-  public DriveTrain(ADXRS450_Gyro g) {
+  public DriveTrainFullPID(ADXRS450_Gyro g) {
     gyro = g;
 
     for (int i = 0; i < talons.length; i++) {
@@ -39,37 +42,45 @@ public class DriveTrain extends SubsystemBase {
       talons[i].setSelectedSensorPosition(0);
     }
 
-    talons[Constants.encoderTalons[0]].setInverted(false);
-    talons[Constants.encoderTalons[1]].setInverted(false); // CHANGE true on test bot, false here bc electrical did a dum
+    talons[1].setInverted(false);
+    talons[3].setInverted(true);
 
 
-    talons[Constants.bareTalons[0]].follow(talons[Constants.encoderTalons[0]]);
-    talons[Constants.bareTalons[0]].setInverted(InvertType.FollowMaster);
-    talons[Constants.bareTalons[1]].follow(talons[Constants.encoderTalons[1]]);
-    talons[Constants.bareTalons[1]].setInverted(InvertType.FollowMaster);
+    talons[0].follow(talons[1]);
+    talons[0].setInverted(InvertType.FollowMaster);
+    talons[2].follow(talons[3]);
+    talons[2].setInverted(InvertType.FollowMaster);
 
     // talons 1 and 3 have the encoders on them so we're going to use them
     // talons 0-1 are on the left side and talons 2-3 are on the right iirc
-    tank = new DifferentialDrive(talons[Constants.encoderTalons[0]], talons[Constants.encoderTalons[1]]);
+    tank = new DifferentialDrive(talons[1], talons[3]);
 
     tank.setRightSideInverted(false);
   }
 
   public void drive(double forw, double turn) {
-    double absForw = Math.abs(forw);
+    double eLeft = talons[1].getSelectedSensorPosition();
+    double eRight = talons[3].getSelectedSensorPosition();
 
-    double error = -gyro.getRate() / I * (absForw < .65 ? absForw : .65);
-    SmartDashboard.putNumber("Error", error);
+    SmartDashboard.putNumber("eLeft", eLeft);
+    SmartDashboard.putNumber("eRight", eRight);
 
-    double eLeft = talons[Constants.encoderTalons[0]].getSelectedSensorVelocity();
-    double eRight = talons[Constants.encoderTalons[1]].getSelectedSensorVelocity();
+    double p = -gyro.getAngle();
 
-    double eForw = eLeft + eRight;
+    SmartDashboard.putNumber("error", p);
 
-    SmartDashboard.putNumber("eForw", eForw);
+    if (turn == 0 && forw != 0) {  //  && (Math.abs(eLeft + eRight) > 50)
+      i += p;
+      // double d = p - lastError;
+      // lastError = p;
 
-    if (turn == 0 && forw != 0) {
-      turn = error;
+      SmartDashboard.putString("PID", String.format("%.2f, %.2f, %.2f", P, I, D));
+ 
+      turn = (P * p + I * i /*D * d*/);
+    } else {
+      gyro.reset();
+      resetEncoders();
+      i = 0;
     }
 
     SmartDashboard.putNumber("Forw", forw);
@@ -77,25 +88,20 @@ public class DriveTrain extends SubsystemBase {
 
     tank.curvatureDrive(forw, turn, true); // forw < .15 && forw > -.15
 
-    // Noice, ctre does pid control for us!
-    talons[Constants.encoderTalons[0]].getFaults(leftFault);
-    talons[Constants.encoderTalons[1]].getFaults(rightFault);
+    talons[1].getFaults(leftFault);
+    talons[3].getFaults(rightFault);
   }
 
   public int getLeftETicks() {
-    return talons[Constants.encoderTalons[0]].getSelectedSensorPosition();
+    return talons[1].getSelectedSensorPosition();
   }
 
   public int getRightETicks() {
-    return talons[Constants.encoderTalons[1]].getSelectedSensorPosition();
-  }
-
-  public double getAvgETicks() { // probably not going to be very useful because the encoders suck at being consistent
-    return (getLeftETicks() + getRightETicks()) / 2.0;
+    return talons[3].getSelectedSensorPosition();
   }
 
   public void resetEncoders() {
-    talons[Constants.encoderTalons[0]].setSelectedSensorPosition(0);
-    talons[Constants.encoderTalons[1]].setSelectedSensorPosition(0);
+    talons[1].setSelectedSensorPosition(0);
+    talons[3].setSelectedSensorPosition(0);
   }
 }
